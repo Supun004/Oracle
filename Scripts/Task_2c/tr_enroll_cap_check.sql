@@ -1,0 +1,95 @@
+--Assumption
+-- user will notify with warning message if section enrollement count comes to 80% of the capacity
+-- user will notify with warning message if section enrollement count reached the capacity
+-- Notifications will be write to DBMS_OUTPUT
+CREATE OR REPLACE TRIGGER tr_enroll_cap_check 
+ FOR INSERT
+ ON enrollment
+
+COMPOUND TRIGGER
+
+TYPE enrollment_t   IS TABLE OF enrollment.section_id%TYPE;
+TYPE count_t        IS VARRAY(1000) OF INTEGER;
+TYPE assoc_array_t  IS TABLE OF VARCHAR2(1000) INDEX BY VARCHAR2(1000);
+
+section_ids     enrollment_t;
+count_nums      count_t;
+count_array     assoc_array_t;
+num_course_cap  NUMBER :=0;
+num_enroll_count NUMBER:=0;
+
+BEFORE STATEMENT IS
+ BEGIN
+
+    SELECT COUNT(*), section_id 
+        BULK COLLECT INTO count_nums, section_ids
+    FROM enrollment
+    GROUP BY section_id;
+    
+    FOR j IN 1..section_ids.COUNT()
+    LOOP
+        count_array(section_ids(j)) := count_nums(j);
+    
+    END LOOP;
+    
+    EXCEPTION
+        WHEN NO_DATA_FOUND THEN
+            DBMS_OUTPUT.PUT_LINE('No rows selected');
+    
+ END BEFORE STATEMENT;
+AFTER EACH ROW IS
+ BEGIN
+ 
+    SELECT capacity INTO num_course_cap
+    FROM section
+    WHERE section_id = :NEW.section_id;
+    
+    num_enroll_count :=count_array(:NEW.section_id)+1;
+    
+    IF (num_enroll_count >= ROUND(num_course_cap * 0.8)) AND (num_enroll_count < num_course_cap ) THEN
+        DBMS_OUTPUT.PUT_LINE('Waring: Section: '||:NEW.section_id||' has reached 80% of the capacity.');
+        --RAISE_APPLICATION_ERROR(-20505, 'Waring: Section: '||:NEW.section_id||' has reached 80% of the capacity.');
+    ELSIF num_enroll_count = num_course_cap THEN
+         DBMS_OUTPUT.PUT_LINE('Waring: Section: '||:NEW.section_id||' has reached the full capacity.');
+         --RAISE_APPLICATION_ERROR(-20505, 'Waring: Section: '||:NEW.section_id||' has reached the full capacity.');
+    ELSIF num_enroll_count > num_course_cap THEN
+         DBMS_OUTPUT.PUT_LINE('Error: Section: '||:NEW.section_id||' has exceed the capacity.');
+         RAISE_APPLICATION_ERROR(-20505, 'Error: Section: '||:NEW.section_id||' has exceed the capacity.');
+    END IF;
+    
+    EXCEPTION
+        WHEN NO_DATA_FOUND THEN
+            DBMS_OUTPUT.PUT_LINE('No rows selected');
+    
+ END AFTER EACH ROW; 
+END tr_enroll_cap_check;
+/
+
+ALTER SYSTEM SET fixed_date='2020-05-04-09:00:00';
+
+INSERT INTO enrollment VALUES (113,240,TO_DATE('30-JAN-2007 10:18:00','DD-MON-YYYY HH24:MI:SS'),NULL,'JAYCAF',TO_DATE('03-NOV-2007 00:00:00','DD-MON-YYYY HH24:MI:SS'),'CBRENNAN',TO_DATE('12-DEC-2007 00:00:00','DD-MON-YYYY HH24:MI:SS')); 
+INSERT INTO enrollment VALUES (102,80,TO_DATE('30-JAN-2007 10:18:00','DD-MON-YYYY HH24:MI:SS'),92,'JAYCAF',TO_DATE('03-NOV-2007 00:00:00','DD-MON-YYYY HH24:MI:SS'),'CBRENNAN',TO_DATE('12-DEC-2007 00:00:00','DD-MON-YYYY HH24:MI:SS'));   
+INSERT INTO enrollment VALUES (103,80,TO_DATE('30-JAN-2007 10:18:00','DD-MON-YYYY HH24:MI:SS'),NULL,'JAYCAF',TO_DATE('03-NOV-2007 00:00:00','DD-MON-YYYY HH24:MI:SS'),'CBRENNAN',TO_DATE('12-DEC-2007 00:00:00','DD-MON-YYYY HH24:MI:SS')); 
+INSERT INTO enrollment VALUES (104,80,TO_DATE('30-JAN-2007 10:18:00','DD-MON-YYYY HH24:MI:SS'),NULL,'JAYCAF',TO_DATE('03-NOV-2007 00:00:00','DD-MON-YYYY HH24:MI:SS'),'CBRENNAN',TO_DATE('12-DEC-2007 00:00:00','DD-MON-YYYY HH24:MI:SS')); 
+INSERT INTO enrollment VALUES (105,80,TO_DATE('30-JAN-2007 10:18:00','DD-MON-YYYY HH24:MI:SS'),NULL,'JAYCAF',TO_DATE('03-NOV-2007 00:00:00','DD-MON-YYYY HH24:MI:SS'),'CBRENNAN',TO_DATE('12-DEC-2007 00:00:00','DD-MON-YYYY HH24:MI:SS'));
+INSERT INTO enrollment VALUES (106,80,TO_DATE('30-JAN-2007 10:18:00','DD-MON-YYYY HH24:MI:SS'),NULL,'JAYCAF',TO_DATE('03-NOV-2007 00:00:00','DD-MON-YYYY HH24:MI:SS'),'CBRENNAN',TO_DATE('12-DEC-2007 00:00:00','DD-MON-YYYY HH24:MI:SS')); 
+INSERT INTO enrollment VALUES (107,80,TO_DATE('30-JAN-2007 10:18:00','DD-MON-YYYY HH24:MI:SS'),NULL,'JAYCAF',TO_DATE('03-NOV-2007 00:00:00','DD-MON-YYYY HH24:MI:SS'),'CBRENNAN',TO_DATE('12-DEC-2007 00:00:00','DD-MON-YYYY HH24:MI:SS'));
+INSERT INTO enrollment VALUES (108,80,TO_DATE('30-JAN-2007 10:18:00','DD-MON-YYYY HH24:MI:SS'),NULL,'JAYCAF',TO_DATE('03-NOV-2007 00:00:00','DD-MON-YYYY HH24:MI:SS'),'CBRENNAN',TO_DATE('12-DEC-2007 00:00:00','DD-MON-YYYY HH24:MI:SS')); 
+INSERT INTO enrollment VALUES (109,80,TO_DATE('30-JAN-2007 10:18:00','DD-MON-YYYY HH24:MI:SS'),NULL,'JAYCAF',TO_DATE('03-NOV-2007 00:00:00','DD-MON-YYYY HH24:MI:SS'),'CBRENNAN',TO_DATE('12-DEC-2007 00:00:00','DD-MON-YYYY HH24:MI:SS')); 
+INSERT INTO enrollment VALUES (110,80,TO_DATE('30-JAN-2007 10:18:00','DD-MON-YYYY HH24:MI:SS'),NULL,'JAYCAF',TO_DATE('03-NOV-2007 00:00:00','DD-MON-YYYY HH24:MI:SS'),'CBRENNAN',TO_DATE('12-DEC-2007 00:00:00','DD-MON-YYYY HH24:MI:SS')); 
+INSERT INTO enrollmnt VALUES (111,80,TO_DATE('30-JAN-2007 10:18:00','DD-MON-YYYY HH24:MI:SS'),NULL,'JAYCAF',TO_DATE('03-NOV-2007 00:00:00','DD-MON-YYYY HH24:MI:SS'),'CBRENNAN',TO_DATE('12-DEC-2007 00:00:00','DD-MON-YYYY HH24:MI:SS'));
+INSERT INTO enrollment VALUES (112,80,TO_DATE('02-FEB-2007 10:18:00','DD-MON-YYYY HH24:MI:SS'),NULL,'JAYCAF',TO_DATE('03-NOV-2007 00:00:00','DD-MON-YYYY HH24:MI:SS'),'CBRENNAN',TO_DATE('12-DEC-2007 00:00:00','DD-MON-YYYY HH24:MI:SS')); 
+INSERT INTO enrollment VALUES (113,80,TO_DATE('02-FEB-2007 10:18:00','DD-MON-YYYY HH24:MI:SS'),NULL,'JAYCAF',TO_DATE('03-NOV-2007 00:00:00','DD-MON-YYYY HH24:MI:SS'),'CBRENNAN',TO_DATE('12-DEC-2007 00:00:00','DD-MON-YYYY HH24:MI:SS'));
+INSERT INTO enrollment VALUES (114,80,TO_DATE('02-FEB-2007 10:18:00','DD-MON-YYYY HH24:MI:SS'),NULL,'JAYCAF',TO_DATE('03-NOV-2007 00:00:00','DD-MON-YYYY HH24:MI:SS'),'CBRENNAN',TO_DATE('12-DEC-2007 00:00:00','DD-MON-YYYY HH24:MI:SS'));
+INSERT INTO enrollment VALUES (128,80,TO_DATE('02-FEB-2007 10:18:00','DD-MON-YYYY HH24:MI:SS'),NULL,'JAYCAF',TO_DATE('03-NOV-2007 00:00:00','DD-MON-YYYY HH24:MI:SS'),'CBRENNAN',TO_DATE('12-DEC-2007 00:00:00','DD-MON-YYYY HH24:MI:SS'));
+INSERT INTO enrollment VALUES (116,80,TO_DATE('02-FEB-2007 10:18:00','DD-MON-YYYY HH24:MI:SS'),NULL,'JAYCAF',TO_DATE('03-NOV-2007 00:00:00','DD-MON-YYYY HH24:MI:SS'),'CBRENNAN',TO_DATE('12-DEC-2007 00:00:00','DD-MON-YYYY HH24:MI:SS')); 
+INSERT INTO enrollment VALUES (117,80,TO_DATE('02-FEB-2007 10:18:00','DD-MON-YYYY HH24:MI:SS'),NULL,'JAYCAF',TO_DATE('03-NOV-2007 00:00:00','DD-MON-YYYY HH24:MI:SS'),'CBRENNAN',TO_DATE('12-DEC-2007 00:00:00','DD-MON-YYYY HH24:MI:SS'));
+INSERT INTO enrollment VALUES (118,80,TO_DATE('02-FEB-2007 10:18:00','DD-MON-YYYY HH24:MI:SS'),NULL,'JAYCAF',TO_DATE('03-NOV-2007 00:00:00','DD-MON-YYYY HH24:MI:SS'),'CBRENNAN',TO_DATE('12-DEC-2007 00:00:00','DD-MON-YYYY HH24:MI:SS'));
+/
+
+select * from enrollment where section_id = 80;
+select * from section where capacity =15;
+ALTER SYSTEM SET fixed_date=NONE;
+delete from enrollment where student_id in (280,281,282,283);
+
+select * From student;
